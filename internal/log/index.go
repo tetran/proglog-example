@@ -8,9 +8,13 @@ import (
 )
 
 const (
+	// レコードのオフセットを保持するフィールドの長さ (Bytes)
 	offWidth uint64 = 4
+	// レコードのファイル内での位置を保持するフィールドの長さ (Bytes)
 	posWidth uint64 = 8
-	entWidth        = offWidth + posWidth
+	// 各エントリーの長さ (Bytes)
+	// オフセットが与えられた時にエントリーの位置 (offset * entWidth) に直接ジャンプするために使う
+	entWidth = offWidth + posWidth
 )
 
 type index struct {
@@ -29,7 +33,7 @@ func newIndex(f *os.File, c Config) (*index, error) {
 	}
 	// インデックスエントリを追加する際にファイル内のデータ量を管理可能にするため、現在のファイルサイズを保存
 	idx.size = uint64(fi.Size())
-	// ファイルを最大のインデックスサイズまで拡張
+	// メモリへマップする前に、ファイルを最大のインデックスサイズまで拡張
 	if err = os.Truncate(
 		f.Name(), int64(c.Segment.MaxIndexBytes),
 	); err != nil {

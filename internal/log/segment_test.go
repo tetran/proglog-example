@@ -36,6 +36,7 @@ func TestSegment(t *testing.T) {
 		require.Equal(t, want.Value, got.Value)
 	}
 
+	// 4回目は失敗する
 	_, err = s.Append(want)
 	require.Equal(t, io.EOF, err)
 

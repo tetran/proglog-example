@@ -8,10 +8,12 @@ import (
 )
 
 var (
+	// レコード長とインデックスエントリを永続化するためのエンコーディング
 	enc = binary.BigEndian
 )
 
 const (
+	// レコード長を格納するために使うバイト数
 	lenWidth = 8
 )
 
@@ -22,11 +24,13 @@ type store struct {
 	size uint64
 }
 
+// 与えられたファイルに基づきストアを作成する
 func newStore(f *os.File) (*store, error) {
 	fi, err := os.Stat(f.Name())
 	if err != nil {
 		return nil, err
 	}
+	// サービス再起動時など、すでにデータを含むファイルから再作成する場合のためにサイズを取得
 	size := uint64(fi.Size())
 	return &store{
 		File: f,
@@ -39,11 +43,11 @@ func (s *store) Append(p []byte) (n uint64, pos uint64, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	pos = s.size
-	// レコードを読み出す時に何バイト読めばいいかがわかるようにレコードの長さを書き出す
+	// レコードを読み出す時に何バイト読めばいいかがわかるようにレコード長を書き出す.
+	// システムコールを減らしてパフォーマンス改善するため、ファイルに直接ではなくバッファ付きWriterに書き出す.
 	if err := binary.Write(s.buf, enc, uint64(len(p))); err != nil {
 		return 0, 0, err
 	}
-	// システムコールを減らしてパフォーマンス改善するため、ファイルに直接ではなくバッファ付きwriterに書き出す
 	w, err := s.buf.Write(p)
 	if err != nil {
 		return 0, 0, err

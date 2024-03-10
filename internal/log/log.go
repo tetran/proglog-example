@@ -55,6 +55,7 @@ func (l *Log) setup() error {
 		off, _ := strconv.ParseUint(offStr, 10, 0)
 		baseOffsets = append(baseOffsets, off)
 	}
+	// 古い順に並べるためのソート処理
 	sort.Slice(baseOffsets, func(i, j int) bool {
 		return baseOffsets[i] < baseOffsets[j]
 	})
@@ -63,7 +64,7 @@ func (l *Log) setup() error {
 		if err = l.newSegment(baseOffsets[i]); err != nil {
 			return err
 		}
-		// baseOffsetsはインデックスとストアの2つの重複を含んでいるので、含んでいるものをスキップ
+		// baseOffsetsには同じ数字が2つずつ(インデックスファイルとストアファイル)含まれているので、重複しているものをスキップ
 		i++
 	}
 	if l.segments == nil {
@@ -105,6 +106,7 @@ func (l *Log) Read(off uint64) (*api.Record, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
+	// 指定されたレコードを含むセグメントを探す
 	var s *segment
 	for _, segment := range l.segments {
 		if segment.baseOffset <= off && off < segment.nextOffset {
