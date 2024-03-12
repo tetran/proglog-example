@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	api "github.com/tetran/proglog-example/api/v1"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,6 +53,15 @@ func testOutOfRangeErr(t *testing.T, log *Log) {
 	read, err := log.Read(1)
 	require.Nil(t, read)
 	require.Error(t, err)
+
+	apiErr := err.(api.ErrOffsetOutOfRange)
+	require.Equal(t, uint64(1), apiErr.Offset)
+
+	st := status.Convert(apiErr)
+	require.Equal(t, 1, len(st.Details()))
+	detail := st.Details()[0].(*errdetails.LocalizedMessage)
+	require.Equal(t, "The requested offset is outside the log's range: 1", detail.Message)
+
 	require.NoError(t, log.Close())
 }
 
