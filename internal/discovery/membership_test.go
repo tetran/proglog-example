@@ -1,4 +1,4 @@
-package discovery
+package discovery_test
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"github.com/travisjeffery/go-dynaport"
+
+	. "github.com/tetran/proglog-example/internal/discovery"
 )
 
 func TestMembership(t *testing.T) {
