@@ -117,7 +117,7 @@ func TestAgent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, consumeResponse.Record.Value, []byte("foo"))
 
-	// // 以下は失敗する
+	// // 互いに複製を繰り返すため以下は失敗する
 	// consumeResponse, err = leaderClient.Consume(
 	// 	context.Background(),
 	// 	&api.ConsumeRequest{

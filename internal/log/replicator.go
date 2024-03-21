@@ -78,8 +78,10 @@ func (r *Replicator) replicate(addr string, leave chan struct{}) {
 	for {
 		select {
 		case <-r.close:
+			// 自分がクラスタを抜ける
 			return
 		case <-leave:
+			// 他のノードがクラスタを抜ける
 			return
 		case record := <-records:
 			_, err = r.LocalServer.Produce(ctx,

@@ -42,6 +42,7 @@ type Config struct {
 	ACLPolicyFile   string
 }
 
+// Serf用のアドレスである`BindAddr`のホストと`RPCPort`を組み合わせてgRPC用のアドレスを作成
 func (c Config) RPCAddr() (string, error) {
 	host, _, err := net.SplitHostPort(c.BindAddr)
 	if err != nil {
