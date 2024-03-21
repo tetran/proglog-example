@@ -2,6 +2,7 @@ package log
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -175,4 +176,145 @@ func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (
 
 func (l *DistributedLog) Read(offset uint64) (*api.Record, error) {
 	return l.log.Read(offset)
+}
+
+var _ raft.FSM = (*fsm)(nil)
+
+type fsm struct {
+	log *Log
+}
+
+type RequestType uint8
+
+const (
+	AppendRequestType RequestType = 0
+)
+
+func (l *fsm) Apply(record *raft.Log) interface{} {
+	buf := record.Data
+	reqType := RequestType(buf[0])
+	switch reqType {
+	case AppendRequestType:
+		return l.applyAppend(buf[1:])
+	}
+	return nil
+}
+
+func (l *fsm) applyAppend(b []byte) interface{} {
+	var req api.ProduceRequest
+	err := proto.Unmarshal(b, &req)
+	if err != nil {
+		return err
+	}
+	offset, err := l.log.Append(req.Record)
+	if err != nil {
+		return err
+	}
+	return &api.ProduceResponse{Offset: offset}
+}
+
+func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
+	r := f.log.Reader()
+	return &snapshot{reader: r}, nil
+}
+
+var _ raft.FSMSnapshot = (*snapshot)(nil)
+
+type snapshot struct {
+	reader io.Reader
+}
+
+func (s *snapshot) Persist(sink raft.SnapshotSink) error {
+	if _, err := io.Copy(sink, s.reader); err != nil {
+		_ = sink.Cancel()
+		return err
+	}
+	return sink.Close()
+}
+func (s *snapshot) Release() {}
+
+func (f *fsm) Restore(r io.ReadCloser) error {
+	b := make([]byte, lenWidth)
+	var buf bytes.Buffer
+	for i := 0; ; i++ {
+		_, err := io.ReadFull(r, b)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		size := int64(enc.Uint64(b))
+		if _, err = io.CopyN(&buf, r, size); err != nil {
+			return nil
+		}
+		record := &api.Record{}
+		if err = proto.Unmarshal(buf.Bytes(), record); err != nil {
+			return err
+		}
+		if i == 0 {
+			f.log.Config.Segment.InitialOffset = record.Offset
+			if err := f.log.Reset(); err != nil {
+				return err
+			}
+		}
+		if _, err = f.log.Append(record); err != nil {
+			return err
+		}
+		buf.Reset()
+	}
+	return nil
+}
+
+var _ raft.LogStore = (*logStore)(nil)
+
+type logStore struct {
+	*Log
+}
+
+func newLogStore(dir string, c Config) (*logStore, error) {
+	log, err := NewLog(dir, c)
+	if err != nil {
+		return nil, err
+	}
+	return &logStore{log}, nil
+}
+
+func (l *logStore) FirstIndex() (uint64, error) {
+	return l.LowestOffset()
+}
+
+func (l *logStore) LastIndex() (uint64, error) {
+	off, err := l.HighestOffset()
+	return off, err
+}
+func (l *logStore) GetLog(index uint64, out *raft.Log) error {
+	in, err := l.Read(index)
+	if err != nil {
+		return err
+	}
+	out.Data = in.Value
+	out.Index = in.Offset
+	out.Type = raft.LogType(in.Type)
+	out.Term = in.Term
+	return nil
+}
+
+func (l *logStore) StoreLog(record *raft.Log) error {
+	return l.StoreLogs([]*raft.Log{record})
+}
+func (l *logStore) StoreLogs(records []*raft.Log) error {
+	for _, record := range records {
+		if _, err := l.Append(&api.Record{
+			Value: record.Data,
+			Term:  record.Term,
+			Type:  uint32(record.Type),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *logStore) DeleteRange(min, max uint64) error {
+	return l.Truncate(max)
 }
