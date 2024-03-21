@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	raftboltdb "github.com/hashicorp/raft-boltdb"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"google.golang.org/protobuf/proto"
 
 	api "github.com/tetran/proglog-example/api/v1"
@@ -24,7 +24,7 @@ type DistributedLog struct {
 	raft    *raft.Raft
 }
 
-func newDistributedLog(dataDir string, config Config) (
+func NewDistributedLog(dataDir string, config Config) (
 	*DistributedLog,
 	error,
 ) {

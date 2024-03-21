@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/hashicorp/raft v1.6.1
-	github.com/hashicorp/raft-boltdb v0.0.0-20231211162105-6c830fa4535e
+	github.com/hashicorp/raft-boltdb/v2 v2.3.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/stretchr/testify v1.9.0
 	github.com/travisjeffery/go-dynaport v1.0.0
@@ -43,6 +43,7 @@ require (
 	github.com/miekg/dns v1.1.41 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	go.etcd.io/bbolt v1.3.5 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
