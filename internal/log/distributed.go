@@ -148,10 +148,10 @@ func (l *DistributedLog) Append(record *api.Record) (uint64, error) {
 	return res.(*api.ProduceResponse).Offset, nil
 }
 
-func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (
-	interface{},
-	error,
-) {
+func (l *DistributedLog) apply(
+	reqType RequestType,
+	req proto.Message,
+) (any, error) {
 	var buf bytes.Buffer
 	_, err := buf.Write([]byte{byte(reqType)})
 	if err != nil {
@@ -193,7 +193,7 @@ const (
 	AppendRequestType RequestType = 0
 )
 
-func (l *fsm) Apply(record *raft.Log) interface{} {
+func (l *fsm) Apply(record *raft.Log) any {
 	buf := record.Data
 	reqType := RequestType(buf[0])
 	switch reqType {
@@ -203,7 +203,7 @@ func (l *fsm) Apply(record *raft.Log) interface{} {
 	return nil
 }
 
-func (l *fsm) applyAppend(b []byte) interface{} {
+func (l *fsm) applyAppend(b []byte) any {
 	var req api.ProduceRequest
 	err := proto.Unmarshal(b, &req)
 	if err != nil {
@@ -400,13 +400,15 @@ func (l *DistributedLog) Join(id, addr string) error {
 	serverAddr := raft.ServerAddress(addr)
 	for _, srv := range configFuture.Configuration().Servers {
 		if srv.ID == serverID || srv.Address == serverAddr {
-			// 参加済み
-			return nil
-		}
-		// 既存サーバを取り除く
-		removeFuture := l.raft.RemoveServer(serverID, 0, 0)
-		if err := removeFuture.Error(); err != nil {
-			return err
+			if srv.ID == serverID && srv.Address == serverAddr {
+				// 参加済み
+				return nil
+			}
+			// 既存サーバを取り除く
+			removeFuture := l.raft.RemoveServer(serverID, 0, 0)
+			if err := removeFuture.Error(); err != nil {
+				return err
+			}
 		}
 	}
 	addFuture := l.raft.AddVoter(serverID, serverAddr, 0, 0)
