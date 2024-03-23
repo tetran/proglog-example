@@ -42,9 +42,9 @@ func (r *Resolver) Build(
 		fmt.Sprintf(`{"loadBalancingConfig":[{"%s":{}}]}`, Name),
 	)
 	var err error
-	// As the `Endpoint` field is removed, using `URL.Host` instead.
+	// As the `Endpoint` field is removed, using `Endpoint()` instead.
 	// See: https://github.com/grpc/grpc-go/pull/5852
-	r.resolverConn, err = grpc.Dial(target.URL.Host, dialOpts...)
+	r.resolverConn, err = grpc.Dial(target.Endpoint(), dialOpts...)
 	if err != nil {
 		return nil, err
 	}

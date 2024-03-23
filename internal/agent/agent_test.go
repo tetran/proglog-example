@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tetran/proglog-example/internal/agent"
 	"github.com/tetran/proglog-example/internal/config"
+	"github.com/tetran/proglog-example/internal/loadbalance"
 	"github.com/travisjeffery/go-dynaport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -98,6 +99,9 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+
+	// レプリケーションが完了するまで待つ
+	time.Sleep(3 * time.Second)
 	consumeResponse, err := leaderClient.Consume(
 		context.Background(),
 		&api.ConsumeRequest{
@@ -106,9 +110,6 @@ func TestAgent(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, consumeResponse.Record.Value, []byte("foo"))
-
-	// レプリケーションが完了するまで待つ
-	time.Sleep(3 * time.Second)
 
 	followerClient := client(t, agents[1], peerTLSConfig)
 	consumeResponse, err = followerClient.Consume(
@@ -144,7 +145,8 @@ func client(
 	rpcAddr, err := agent.Config.RPCAddr()
 	require.NoError(t, err)
 
-	conn, err := grpc.Dial(rpcAddr, opts...)
+	target := fmt.Sprintf("%s:///%s", loadbalance.Name, rpcAddr)
+	conn, err := grpc.Dial(target, opts...)
 	require.NoError(t, err)
 
 	client := api.NewLogClient(conn)

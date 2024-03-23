@@ -55,7 +55,7 @@ func TestResolver(t *testing.T) {
 	r := loadbalance.Resolver{}
 	// As the `Endpoint` field is removed, building `URL` is needed.
 	// See: https://github.com/grpc/grpc-go/pull/5852
-	url, err := url.Parse("foo://" + l.Addr().String())
+	url, err := url.Parse("foo:///" + l.Addr().String())
 	require.NoError(t, err)
 	target := resolver.Target{URL: *url}
 	_, err = r.Build(
