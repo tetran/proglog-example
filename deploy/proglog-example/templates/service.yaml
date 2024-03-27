@@ -13,10 +13,10 @@ spec:
       targetPort: {{ .Values.rpcPort }}
     - name: serf-tcp
       protocol: "TCP"
-      port: {{ .Values.rpcPort }}
-      targetPort: {{ .Values.rpcPort }}
+      port: {{ .Values.serfPort }}
+      targetPort: {{ .Values.serfPort }}
     - name: serf-udp
       protocol: "UDP"
-      port: {{ .Values.rpcPort }}
-      targetPort: {{ .Values.rpcPort }}
-  selector: {{ include "proglog.selectorLabels" . | nindent 4 }}
+      port: {{ .Values.serfPort }}
+      targetPort: {{ .Values.serfPort }}
+  selector: {{ include "proglog-example.selectorLabels" . | nindent 4 }}

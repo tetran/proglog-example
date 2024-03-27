@@ -2,12 +2,12 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "proglog-example.fullname" . }}
-  namesspace: {{ .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
   labels: {{ include "proglog-example.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels: {{ include "proglog-example.selectorLabels" . | nindent 6 }}
-  serviceName: {{ include "proglog-example.fullname" .}}
+  serviceName: {{ include "proglog-example.fullname" . }}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
@@ -28,7 +28,7 @@ spec:
             rpc-port: {{.Values.rpcPort}}
             bind-addr: "$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"
             bootstrap: $([ $ID = 0 ] && echo true || echo false)
-            $([ $ID != 0 ] && echo 'start-join-addrs:"proglog-example-0.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}')
+            $([ $ID != 0 ] && echo 'start-join-addrs: "proglog-example-0.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"')
             EOD
         volumeMounts:
         - name: datadir
@@ -40,16 +40,24 @@ spec:
         - containerPort: {{ .Values.rpcPort }}
           name: rpc
         - containerPort: {{ .Values.serfPort }}
-          name: serv
+          name: serf
         args:
           - --config-file=/var/run/proglog-example/config.yaml
         readinessProbe:
           exec:
-            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+            command:
+              - /bin/sh
+              - -c
+              - |-
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
           initialDelaySeconds: 10
         livenessProbe:
           exec:
-            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+            command:
+              - /bin/sh
+              - -c
+              - |-
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
           initialDelaySeconds: 10
         volumeMounts:
         - name: datadir

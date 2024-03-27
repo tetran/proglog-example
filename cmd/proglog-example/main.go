@@ -50,7 +50,7 @@ func setupFlags(cmd *cobra.Command) error {
 
 	dataDir := path.Join(os.TempDir(), "proglog-example")
 	cmd.Flags().String("data-dir", dataDir, "Directory to store log and Raft data.")
-	cmd.Flags().String("node-name", hostname, "Unique server ID")
+	cmd.Flags().String("node-name", hostname, "Unique server ID.")
 
 	cmd.Flags().String("bind-addr", "127.0.0.1:8401", "Address to bind Serf on.")
 	cmd.Flags().Int("rpc-port", 8400, "Port for RPC clients (and Raft) connections.")

@@ -10,7 +10,7 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.4.8 && \
 
 # q: what is scratch?
 # a: scratch is a special Docker image that is completely empty. It is often used as a base image for building minimal Docker images.
-FROM scratch
+FROM alpine
 COPY --from=build /go/bin/proglog-example /bin/proglog-example
 COPY --from=build /go/bin/grpc_health_probe /bin/grpc_health_probe
 ENTRYPOINT [ "/bin/proglog-example" ]
