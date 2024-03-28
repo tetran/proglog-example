@@ -42,7 +42,7 @@ func NewDistributedLog(dataDir string, config Config) (
 
 func (l *DistributedLog) setupLog(dataDir string) error {
 	logDir := filepath.Join(dataDir, "log")
-	if err := os.Mkdir(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return err
 	}
 	var err error
@@ -129,7 +129,7 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 		config := raft.Configuration{
 			Servers: []raft.Server{{
 				ID:      config.LocalID,
-				Address: transport.LocalAddr(),
+				Address: raft.ServerAddress(l.config.Raft.BindAddr),
 			}},
 		}
 		err = l.raft.BootstrapCluster(config).Error()

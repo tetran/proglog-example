@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "proglog-example.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "proglog-example.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "proglog-example.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "proglog-example.fullname" . }}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      name: {{ include "proglog-example.fullname" . }}
+      labels: {{ include "proglog-example.labels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: {{ include "proglog-example.fullname" . }}-config-init
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            ID=$(echo $HOSTNAME | rev | cut -d- -f1 | rev)
+            cat > /var/run/proglog-example/config.yaml <<EOD
+            data-dir: /var/run/proglog-example/data
+            rpc-port: {{.Values.rpcPort}}
+            bind-addr: "$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"
+            bootstrap: $([ $ID = 0 ] && echo true || echo false)
+            $([ $ID != 0 ] && echo 'start-join-addrs: "proglog-example-0.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"')
+            EOD
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/proglog-example
+      containers:
+      - name: {{ include "proglog-example.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.rpcPort }}
+          name: rpc
+        - containerPort: {{ .Values.serfPort }}
+          name: serf
+        args:
+          - --config-file=/var/run/proglog-example/config.yaml
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - |-
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+          initialDelaySeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - |-
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog-example.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/proglog-example
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.storage }}
