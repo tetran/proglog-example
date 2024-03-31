@@ -83,3 +83,6 @@ TAG ?= 0.0.1
 
 build-docker:
 	docker build -t github.com/tetran/proglog-example:${TAG} .
+
+build-docker-arm64:
+	docker build -f Dockerfile.arm64 -t github.com/tetran/proglog-example:${TAG} .
