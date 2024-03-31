@@ -19,8 +19,8 @@ function(request) {
         ports: [
           {
             local parts = std.split(portnums, ":"),
-            port: std.ParseInt(parts[0]),
-            targetPort: std.ParseInt(parts[1])
+            port: std.parseInt(parts[0]),
+            targetPort: std.parseInt(parts[1]),
           }
           for portnums in std.split(ports, ",")
         ]
